@@ -1,0 +1,14 @@
+STOP REPLICA;
+
+DO SLEEP(5);
+
+-- mysql4가 mysql3을 바라보게 설정
+CHANGE REPLICATION SOURCE TO 
+    SOURCE_HOST='mysql3',
+    SOURCE_USER='repl_user',
+    SOURCE_PASSWORD='repl1234!',
+    SOURCE_PORT=3306,
+    SOURCE_SSL=0,
+    GET_SOURCE_PUBLIC_KEY=1;
+
+START REPLICA;

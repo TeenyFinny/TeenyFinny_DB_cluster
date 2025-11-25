@@ -1,0 +1,25 @@
+  tunnel: teeny-tunnel
+  credentials-file: /etc/cloudflared/teeny-tunnel.json
+
+  ingress:
+    - hostname: channel1.teenyfinny.store
+      service: tcp://proxysql1:6033
+
+    - hostname: channel2.teenyfinny.store
+      service: tcp://proxysql2:6033
+
+    - hostname: core1.teenyfinny.store
+      service: tcp://proxysql3:6033
+
+    - hostname: core2.teenyfinny.store
+      service: tcp://proxysql4:6033
+
+    - hostname: test-db.teenyfinny.store
+      service: tcp://mysql5:3306
+
+    - service: http_status:404
+
+  # cloudflared access tcp --hostname channel1.teenyfinny.store --url 127.0.0.1:8293
+  # cloudflared access tcp --hostname channel2.teenyfinny.store --url 127.0.0.1:8294
+  # cloudflared access tcp --hostname core1.teenyfinny.store --url 127.0.0.1:8295
+  # cloudflared access tcp --hostname core2.teenyfinny.store --url 127.0.0.1:8296

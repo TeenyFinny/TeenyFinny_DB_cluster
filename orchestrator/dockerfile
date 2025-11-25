@@ -1,0 +1,23 @@
+FROM openarkcode/orchestrator:latest
+
+USER root
+
+RUN set -eux; \
+  if command -v apk >/dev/null 2>&1; then \
+    echo "[INFO] Using apk (Alpine)"; \
+    # mysql-client 는 더미 패키지 → 실제로는 mariadb-client 설치됨
+    # 명시적으로 mariadb-client를 설치하는 편이 더 직관적
+    apk update && apk add --no-cache mariadb-client bash; \
+  elif command -v yum >/dev/null 2>&1; then \
+    echo "[INFO] Using yum (RHEL/CentOS 계열)"; \
+    yum install -y mysql bash && yum clean all; \
+  elif command -v microdnf >/dev/null 2>&1; then \
+    echo "[INFO] Using microdnf"; \
+    microdnf install -y mysql bash && microdnf clean all; \
+  elif command -v apt-get >/dev/null 2>&1; then \
+    echo "[INFO] Using apt-get (Debian/Ubuntu 계열)"; \
+    apt-get update && apt-get install -y default-mysql-client bash && rm -rf /var/lib/apt/lists/*; \
+  else \
+    echo "No supported package manager (apk/yum/microdnf/apt-get) found" >&2; \
+    exit 1; \
+  fi

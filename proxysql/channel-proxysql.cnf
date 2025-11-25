@@ -1,0 +1,115 @@
+datadir="/var/lib/proxysql"
+
+########################################
+# ADMIN 설정
+########################################
+admin_variables =
+{
+  admin_credentials="root:fisa1234!"        # 필요하면 나중에 바꿔
+  mysql_ifaces="0.0.0.0:6032"
+  web_enabled=true
+  web_port=6080
+}
+
+########################################
+# MySQL 프록시 설정
+########################################
+mysql_variables =
+{
+  threads=4
+  max_connections=2048
+  default_query_delay=0
+  default_query_timeout=36000000
+  interfaces="0.0.0.0:6033"
+
+  # 백엔드 상태 체크용 계정 (MySQL에 직접 만들어줘야 함)
+  monitor_username="proxysql_monitor"
+  monitor_password="monitor1234!"
+
+  # 기타 옵션
+  connect_timeout_server=3000
+  monitor_history=600000
+  monitor_connect_interval=60000
+  monitor_ping_interval=10000
+  monitor_read_only_interval=1500
+}
+
+########################################
+# channel 클러스터: writer / reader 나누기
+# writer_hostgroup = 10, reader_hostgroup = 11
+########################################
+mysql_replication_hostgroups =
+(
+  {
+    writer_hostgroup=10
+    reader_hostgroup=11
+    comment="channel cluster"
+  }
+)
+
+mysql_servers =
+(
+  # Writer 후보 (보통 mysql1을 master로)
+  {
+    hostgroup_id=10
+    hostname="mysql1"
+    port=3306
+    max_connections=500
+    comment="channel writer candidate 1"
+  },
+
+  # Reader 혹은 failover용
+  {
+    hostgroup_id=11
+    hostname="mysql2"
+    port=3306
+    max_connections=500
+    comment="channel reader candidate 1"
+  }
+)
+
+########################################
+# 클라이언트가 사용할 계정
+# 앱에서 proxysql에 붙을 때 이 계정 사용
+########################################
+mysql_users =
+(
+  {
+    username="teeny"
+    password="teenypass"
+    default_hostgroup=10       # 기본은 writer로
+    transaction_persistent=1
+    active=1
+    comment="app user for channel cluster"
+  }
+)
+
+########################################
+# Query Routing
+# - SELECT → reader hostgroup(11)
+# - 나머지(INSERT/UPDATE 등) → writer hostgroup(10)
+########################################
+mysql_query_rules =
+(
+  # 1. SELECT는 reader로
+  {
+    rule_id=1
+    active=1
+    match_pattern="^SELECT"
+    destination_hostgroup=11
+    apply=1
+    flagIN=0
+    flagOUT=0
+  },
+
+  # 2. 나머지는 전부 writer로
+  {
+    rule_id=100
+    active=1
+    match_pattern=".*"
+    destination_hostgroup=10
+    apply=1
+    flagIN=0
+    flagOUT=0
+  }
+)

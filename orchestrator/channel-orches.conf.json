@@ -1,0 +1,47 @@
+{
+  "Debug": true,
+  "EnableSyslog": false,
+  "ListenAddress": ":3000",
+
+  "MySQLTopologyUser": "orc_topology_user",
+  "MySQLTopologyPassword": "orc1234!",
+  "BackendDB": "sqlite",
+  "SQLite3DataFile": "/var/lib/orchestrator/orchestrator.db",
+
+  "RecoveryPeriodBlockSeconds": 30,
+  "RecoveryIgnoreHostnameFilters": [],
+  "RecoverMasterClusterFilters": ["*"],
+  "DetectClusterAliasQuery": "SELECT 'channel_cluster'",
+  "DiscoverByShowSlaveHosts": true,
+  "InstancePollSeconds": 5,
+  "MySQLHostnameResolveMethod": "@@report_host",
+
+  "OnFailureDetectionProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh OnFailureDetection {failureType} {failureClusterAlias} {failedHost} {failedPort}"
+  ],
+
+  "PreFailoverProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh PreFailover {failureType} {failureClusterAlias} {failedHost} {failedPort}"
+  ],
+
+  "PostFailoverProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh PostFailover {failureType} {failureClusterAlias} {failedHost} {failedPort} {successorHost} {successorPort} {isSuccessful}"
+  ],
+
+  "PostMasterFailoverProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh PostMasterFailover {failureType} {failureClusterAlias} {failedHost} {failedPort} {successorHost} {successorPort} {isSuccessful}",
+    "/etc/orchestrator/hooks/wait-for-old-master.sh {failureType} {failureClusterAlias} {failedHost} {failedPort} {successorHost} {successorPort} {isSuccessful}"
+  ],
+
+  "PostIntermediateMasterFailoverProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh PostIntermediateMasterFailover {failureType} {failureClusterAlias} {failedHost} {failedPort} {successorHost} {successorPort} {isSuccessful}"
+  ],
+
+  "PostUnsuccessfulFailoverProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh PostUnsuccessfulFailover {failureType} {failureClusterAlias} {failedHost} {failedPort}"
+  ],
+
+  "OnInstanceRecoveredProcesses": [
+    "/etc/orchestrator/hooks/orc-hook-logger.sh OnInstanceRecovered {hostname} {port} {clusterAlias}"
+  ]
+}

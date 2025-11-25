@@ -1,0 +1,18 @@
+{
+  "Debug": true,
+  "EnableSyslog": false,
+  "ListenAddress": ":3000",
+  "MySQLTopologyUser": "orc_topology_user",
+  "MySQLTopologyPassword": "orc1234!",
+  "BackendDB": "sqlite",
+  "SQLite3DataFile": "/var/lib/orchestrator/orchestrator.db",
+  "RecoveryPeriodBlockSeconds": 30,
+  "RecoveryIgnoreHostnameFilters": [],
+  "RecoverMasterClusterFilters": [
+    "*"
+  ],
+  "DetectClusterAliasQuery": "SELECT 'core_cluster'", 
+  "DiscoverByShowSlaveHosts": true,
+  "InstancePollSeconds": 5,
+  "MySQLHostnameResolveMethod": "@@report_host"
+}

@@ -1,0 +1,315 @@
+version: "3.9"
+
+# ✅ 마스터용 / 레플리카용 환경변수 앵커를 아예 분리
+x-mysql-env-master-channel: &mysql-env-master-channel
+  MYSQL_ROOT_PASSWORD: fisa1234!
+  MYSQL_DATABASE: teeny_channel
+  MYSQL_USER: teeny
+  MYSQL_PASSWORD: teenypass
+
+x-mysql-env-master-core: &mysql-env-master-core
+  MYSQL_ROOT_PASSWORD: fisa1234!
+  MYSQL_DATABASE: teeny_core
+  MYSQL_USER: teeny
+  MYSQL_PASSWORD: teenypass
+
+x-mysql-env-replica: &mysql-env-replica
+  MYSQL_ROOT_PASSWORD: fisa1234!
+
+networks:
+  db-net:
+    driver: bridge
+  edge-net:
+    driver: bridge
+
+volumes:
+  mysql1-data:
+  mysql2-data:
+  mysql3-data:
+  mysql4-data:
+  mysql5-data: # mysql5 볼륨 정의 추가됨
+  proxysql1-data:
+  proxysql2-data:
+  proxysql3-data:
+  proxysql4-data:
+  orchestrator1-data:
+  orchestrator2-data:
+
+services:
+  # ==========================
+  # MySQL 4대 + 1대
+  # ==========================
+  
+  # [Channel Master]
+  mysql1:
+    image: mysql:8.0
+    container_name: sw_team_3_channel_db_1
+    restart: unless-stopped
+    environment:
+      <<: *mysql-env-master-channel
+    command: [
+      "mysqld",
+      "--server-id=1",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-replica-updates=ON",
+      "--report-host=mysql1",
+      "--report-port=3306"
+    ]
+    volumes:
+      - ./mysql/mysql1-data:/var/lib/mysql
+      - ./mysql-init/01-create-users.sql:/docker-entrypoint-initdb.d/01-create-users.sql
+    networks:
+      - db-net
+
+  # [Channel Slave]
+  mysql2:
+    image: mysql:8.0
+    container_name: sw_team_3_channel_db_2
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+    environment:
+      <<: *mysql-env-replica
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+    command: [
+      "mysqld",
+      "--server-id=2",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-replica-updates=ON",
+      "--report-host=mysql2",
+      "--report-port=3306",
+      "--read-only=ON",
+    ]
+    volumes:
+      - ./mysql/mysql2-data:/var/lib/mysql
+      - ./mysql-init/02-replica-channel.sql:/docker-entrypoint-initdb.d/02-replica-channel.sql
+    networks:
+      - db-net
+
+  # [Core Master]
+  mysql3:
+    image: mysql:8.0
+    container_name: sw_team_3_core_db_1
+    restart: unless-stopped
+    environment:
+      <<: *mysql-env-master-core
+    command: [
+      "mysqld",
+      "--server-id=3",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-replica-updates=ON",
+      "--report-host=mysql3",
+      "--report-port=3306"
+    ]
+    volumes:
+      - ./mysql/mysql3-data:/var/lib/mysql
+      - ./mysql-init/01-create-users.sql:/docker-entrypoint-initdb.d/01-create-users.sql
+    networks:
+      - db-net
+
+  # [Core Slave]
+  mysql4:
+    image: mysql:8.0
+    container_name: sw_team_3_core_db_2
+    restart: unless-stopped
+    depends_on:
+      - mysql3
+    environment:
+      <<: *mysql-env-replica
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+    command: [
+      "mysqld",
+      "--server-id=4",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-replica-updates=ON",
+      "--report-host=mysql4",
+      "--report-port=3306",
+      "--read-only=ON"
+    ]
+    volumes:
+      - ./mysql/mysql4-data:/var/lib/mysql
+      - ./mysql-init/02-replica-core.sql:/docker-entrypoint-initdb.d/02-replica-core.sql
+    networks:
+      - db-net
+
+  # [테스트용 단일 MySQL]
+  mysql5:
+    image: mysql:8.0
+    container_name: sw_team_3_test_db
+    restart: unless-stopped
+    environment:
+      <<: *mysql-env-master-core     # 단독 DB니까 app user 있어도 됨
+    command: [
+      "mysqld",
+      "--server-id=5",
+      "--log-bin=mysql-bin",
+      "--binlog-format=ROW",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-replica-updates=ON"
+    ]
+    volumes:
+      - ./mysql/mysql5-data:/var/lib/mysql
+    networks:
+      - db-net
+      - edge-net
+
+  # ==========================
+  # ProxySQL 4대
+  # ==========================
+  proxysql1:
+    image: proxysql/proxysql:latest
+    container_name: sw_team_3_channel_proxySQL_1
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    environment:
+      MYSQL_ROOT_PASSWORD: fisa1234!
+    volumes:
+      - ./proxysql/proxysql1-data:/var/lib/proxysql
+      - ./proxysql/channel-proxysql.cnf:/etc/proxysql.cnf:ro
+    ports:
+      - "8280:6033"
+      - "8281:6032"
+    networks:
+      - db-net
+      - edge-net
+
+  proxysql2:
+    image: proxysql/proxysql:latest
+    container_name: sw_team_3_channel_proxySQL_2
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    environment:
+      MYSQL_ROOT_PASSWORD: fisa1234!
+    volumes:
+      - ./proxysql/proxysql2-data:/var/lib/proxysql
+      - ./proxysql/channel-proxysql.cnf:/etc/proxysql.cnf:ro
+    ports:
+      - "8282:6033"
+      - "8283:6032"
+    networks:
+      - db-net
+      - edge-net
+
+  proxysql3:
+    image: proxysql/proxysql:latest
+    container_name: sw_team_3_core_proxySQL_1
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    environment:
+      MYSQL_ROOT_PASSWORD: fisa1234!
+    volumes:
+      - ./proxysql/proxysql3-data:/var/lib/proxysql
+      - ./proxysql/core-proxysql.cnf:/etc/proxysql.cnf:ro
+    ports:
+      - "8284:6033"
+      - "8285:6032"
+    networks:
+      - db-net
+      - edge-net
+
+  proxysql4:
+    image: proxysql/proxysql:latest
+    container_name: sw_team_3_core_proxySQL_2
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    environment:
+      MYSQL_ROOT_PASSWORD: fisa1234!
+    volumes:
+      - ./proxysql/proxysql4-data:/var/lib/proxysql
+      - ./proxysql/core-proxysql.cnf:/etc/proxysql.cnf:ro
+    ports:
+      - "8286:6033"
+      - "8287:6032"
+    networks:
+      - db-net
+      - edge-net
+
+  # ==========================
+  # Orchestrator 2대
+  # ==========================
+  orchestrator1:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    image: sw_team_3/orchestrator-with-mysql    # 이름은 원하는대로
+    container_name: sw_team_3_channel_orchest
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    volumes:
+      - ./orchestrator/orchestrator1-data:/var/lib/orchestrator
+      - ./orchestrator/channel-orches.conf.json:/etc/orchestrator.conf.json:ro
+      - ./orchestrator/hooks:/etc/orchestrator/hooks
+    environment:
+      ORC_HTTP_PORT: "3000"
+    ports:
+      - "8289:3000"
+    networks:
+      - db-net
+      - edge-net
+
+  orchestrator2:
+    image: sw_team_3/orchestrator-with-mysql    # 이름은 원하는대로
+    container_name: sw_team_3_core_orchest
+    restart: unless-stopped
+    depends_on:
+      - mysql1
+      - mysql2
+      - mysql3
+      - mysql4
+    volumes:
+      - ./orchestrator/orchestrator2-data:/var/lib/orchestrator
+      - ./orchestrator/core-orches.conf.json:/etc/orchestrator.conf.json:ro
+    environment:
+      ORC_HTTP_PORT: "3000"
+    ports:
+      - "8290:3000"
+    networks:
+      - db-net
+      - edge-net
+
+  # ==========================
+  # Cloudflared Tunnel
+  # ==========================
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sw_team_3_cloudflared_tunnel
+    restart: unless-stopped
+    command: tunnel run
+    volumes:
+      - ./cloudflared:/etc/cloudflared
+    networks:
+      - edge-net
