@@ -114,16 +114,30 @@ DUMP_ERR="${TMP_DIR}/${APP_DB}.err"
 
 log "tmp dir created: ${TMP_DIR}"
 log "dump file path: ${DUMP_FILE}"
+log "tmp dir created: ${TMP_DIR}"
+log "dump file path: ${DUMP_FILE}"
+
 log "take logical dump from new master ${SUCCESSOR_HOST}:${SUCCESSOR_PORT}, db=${APP_DB} as ${ADMIN_USER}"
 
-# mysqldump stderr까지 캡쳐해서 로그로 남김
+# --- mysqldump가 --set-gtid-purged 옵션을 지원하는지 확인 ---
+GTID_OPTION="--set-gtid-purged=ON"
+if ! mysqldump --help 2>&1 | grep -q "set-gtid-purged"; then
+  log "mysqldump in this container does NOT support --set-gtid-purged, dumping WITHOUT GTID metadata"
+  GTID_OPTION=""
+else
+  log "mysqldump supports --set-gtid-purged, using ${GTID_OPTION}"
+fi
+
+DUMP_ERR="${TMP_DIR}/${APP_DB}.err"
+
 if ! mysqldump \
   -h "$SUCCESSOR_HOST" -P "$SUCCESSOR_PORT" \
   -u"$ADMIN_USER" -p"$ADMIN_PASSWORD" \
   --single-transaction \
   --routines --events --triggers \
-  --set-gtid-purged=ON \
+  ${GTID_OPTION} \
   --databases "$APP_DB" > "$DUMP_FILE" 2> "$DUMP_ERR"; then
+
   if [ -s "$DUMP_ERR" ]; then
     SANITIZED_DUMP_ERR=$(tr '\n' ' ' < "$DUMP_ERR" | sed 's/  */ /g')
     log "mysqldump from new master FAILED. error: ${SANITIZED_DUMP_ERR}"
@@ -134,6 +148,7 @@ if ! mysqldump \
 fi
 
 log "dump completed: $DUMP_FILE (size=$(stat -c%s "$DUMP_FILE" 2>/dev/null || echo unknown) bytes)"
+
 
 # -------------------------
 # 3. 옛 마스터 초기화 (데이터 날리고 GTID 세팅 준비)
