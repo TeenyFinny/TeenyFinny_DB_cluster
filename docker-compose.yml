@@ -56,7 +56,8 @@ services:
       "--enforce_gtid_consistency=ON",
       "--log-replica-updates=ON",
       "--report-host=mysql1",
-      "--report-port=3306"
+      "--report-port=3306",
+      "--skip-ssl"
     ]
     volumes:
       - ./mysql/mysql1-data:/var/lib/mysql
@@ -85,6 +86,7 @@ services:
       "--report-host=mysql2",
       "--report-port=3306",
       "--read-only=ON",
+      "--skip-ssl"
     ]
     volumes:
       - ./mysql/mysql2-data:/var/lib/mysql
@@ -108,7 +110,8 @@ services:
       "--enforce_gtid_consistency=ON",
       "--log-replica-updates=ON",
       "--report-host=mysql3",
-      "--report-port=3306"
+      "--report-port=3306",
+      "--skip-ssl"
     ]
     volumes:
       - ./mysql/mysql3-data:/var/lib/mysql
@@ -136,7 +139,8 @@ services:
       "--log-replica-updates=ON",
       "--report-host=mysql4",
       "--report-port=3306",
-      "--read-only=ON"
+      "--read-only=ON",
+      "--skip-ssl"
     ]
     volumes:
       - ./mysql/mysql4-data:/var/lib/mysql
@@ -147,7 +151,7 @@ services:
   # [테스트용 단일 MySQL]
   mysql5:
     image: mysql:8.0
-    container_name: sw_team_3_test_db
+    container_name: sw_team_3_test_db 
     restart: unless-stopped
     environment:
       <<: *mysql-env-master-core     # 단독 DB니까 app user 있어도 됨
@@ -158,7 +162,8 @@ services:
       "--binlog-format=ROW",
       "--gtid_mode=ON",
       "--enforce_gtid_consistency=ON",
-      "--log-replica-updates=ON"
+      "--log-replica-updates=ON",
+      "--skip-ssl"
     ]
     volumes:
       - ./mysql/mysql5-data:/var/lib/mysql
