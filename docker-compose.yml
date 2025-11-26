@@ -56,8 +56,7 @@ services:
       "--enforce_gtid_consistency=ON",
       "--log-replica-updates=ON",
       "--report-host=mysql1",
-      "--report-port=3306",
-      "--skip-ssl"
+      "--report-port=3306"
     ]
     volumes:
       - ./mysql/mysql1-data:/var/lib/mysql
@@ -85,8 +84,7 @@ services:
       "--log-replica-updates=ON",
       "--report-host=mysql2",
       "--report-port=3306",
-      "--read-only=ON",
-      "--skip-ssl"
+      "--read-only=ON"
     ]
     volumes:
       - ./mysql/mysql2-data:/var/lib/mysql
@@ -110,8 +108,7 @@ services:
       "--enforce_gtid_consistency=ON",
       "--log-replica-updates=ON",
       "--report-host=mysql3",
-      "--report-port=3306",
-      "--skip-ssl"
+      "--report-port=3306"
     ]
     volumes:
       - ./mysql/mysql3-data:/var/lib/mysql
@@ -139,8 +136,7 @@ services:
       "--log-replica-updates=ON",
       "--report-host=mysql4",
       "--report-port=3306",
-      "--read-only=ON",
-      "--skip-ssl"
+      "--read-only=ON"
     ]
     volumes:
       - ./mysql/mysql4-data:/var/lib/mysql
@@ -162,8 +158,7 @@ services:
       "--binlog-format=ROW",
       "--gtid_mode=ON",
       "--enforce_gtid_consistency=ON",
-      "--log-replica-updates=ON",
-      "--skip-ssl"
+      "--log-replica-updates=ON"
     ]
     volumes:
       - ./mysql/mysql5-data:/var/lib/mysql
@@ -188,6 +183,7 @@ services:
     volumes:
       - ./proxysql/proxysql1-data:/var/lib/proxysql
       - ./proxysql/channel-proxysql.cnf:/etc/proxysql.cnf:ro
+      - ./mysql/certs/ca-bundle.pem:/etc/ssl/mysql/ca-bundle.pem:ro
     ports:
       - "8280:6033"
       - "8281:6032"
@@ -209,6 +205,7 @@ services:
     volumes:
       - ./proxysql/proxysql2-data:/var/lib/proxysql
       - ./proxysql/channel-proxysql.cnf:/etc/proxysql.cnf:ro
+      - ./mysql/certs/ca-bundle.pem:/etc/ssl/mysql/ca-bundle.pem:ro
     ports:
       - "8282:6033"
       - "8283:6032"
@@ -230,6 +227,7 @@ services:
     volumes:
       - ./proxysql/proxysql3-data:/var/lib/proxysql
       - ./proxysql/core-proxysql.cnf:/etc/proxysql.cnf:ro
+      - ./mysql/certs/ca-bundle.pem:/etc/ssl/mysql/ca-bundle.pem:ro
     ports:
       - "8284:6033"
       - "8285:6032"
@@ -251,6 +249,7 @@ services:
     volumes:
       - ./proxysql/proxysql4-data:/var/lib/proxysql
       - ./proxysql/core-proxysql.cnf:/etc/proxysql.cnf:ro
+      - ./mysql/certs/ca-bundle.pem:/etc/ssl/mysql/ca-bundle.pem:ro
     ports:
       - "8286:6033"
       - "8287:6032"

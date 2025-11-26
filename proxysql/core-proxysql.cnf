@@ -32,6 +32,8 @@ mysql_variables =
   monitor_connect_interval=60000
   monitor_ping_interval=10000
   monitor_read_only_interval=1500
+  mysql_ssl_mode=2
+  mysql_ssl_ca="/etc/ssl/mysql/ca-bundle.pem"
 }
 
 ########################################
@@ -55,6 +57,7 @@ mysql_servers =
     hostname="mysql3"
     port=3306
     max_connections=500
+    use_ssl=1
     comment="core writer candidate 1"
   },
 
@@ -64,6 +67,7 @@ mysql_servers =
     hostname="mysql4"
     port=3306
     max_connections=500
+    use_ssl=1
     comment="core reader candidate 1"
   }
 )
